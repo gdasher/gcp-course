@@ -1,0 +1,49 @@
+---
+image:
+  repository: us-west1-docker.pkg.dev/gcp-security-dev-curriculum/elmer-repo/elmer-waveguide
+  tag: 0.2.13
+
+
+serviceAccountConfig:
+  k8sName: openmpisa
+  gcpName: openmpisa@gcp-security-dev-curriculum.iam.gserviceaccount.com
+
+# kube-openmpi cluster consists of 1-Master and N-Workers.
+# master is the place you will invoke mpirun/mpiexec.
+# 'hostfile' will be automatically generated/updated
+# and is available at '/kube-openmpi/generated/hostfile'.
+mpiMaster:
+  autoUpdateHostfile:
+    enabled: true
+  securityContext:
+    runAsUser: 1000
+    fsGroup: 1000
+  oneShot:
+    # If oneShot.enabled=true, mater automatically runs oneShot.command and complete self.
+    enabled: true
+    # This will scale workers down to 0 when command completed successfully.
+    autoScaleDownWorkers: true
+    command: |
+      ./run_elmer.sh
+  volumes:
+    - name: output-volume
+      emptyDir: {}
+  volumeMounts:
+    - mountPath: /physics/output
+      name: output-volume
+
+mpiWorkers:
+  num: 4
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1024Mi
+  securityContext:
+    runAsUser: 1000
+    fsGroup: 1000
+  volumes:
+    - name: output-volume
+      emptyDir: {}
+  volumeMounts:
+    - mountPath: /physics/output
+      name: output-volume
